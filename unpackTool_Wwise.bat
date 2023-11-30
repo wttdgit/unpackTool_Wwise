@@ -1,5 +1,5 @@
 @echo off & setlocal enabledelayedexpansion
-set input_folder=SoundBank
+set input_folder=%~dp0SoundBank
 set output_folder=Ogg
 set thread_index=0
 rem 线程数修改Tools\thread.txt、建议3以内
@@ -56,8 +56,13 @@ for /r "%input_folder%" %%a in (*.wem *.bnk) do (
     )
 )
 echo Convert Done^^!
+:tempDel
+tasklist /fi "imagename eq cmd.exe" /v | findstr /i "processAudio" >nul 2>&1
+if !errorlevel! equ 0 (
+    timeout 1 >nul 2>&1
+    goto tempDel
+)
 for /l %%i in (1,1,!thread_count!) do (rd /s /q Tools\Decoding_%%i) >nul 2>&1
 del /q Tools\*_*.exe >nul 2>&1
 del /q Tools\*_*.bat >nul 2>&1
-pause
 exit
