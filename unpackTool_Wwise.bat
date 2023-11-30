@@ -48,8 +48,11 @@ for /r "%input_folder%" %%a in (*.wem *.bnk) do (
     set /a done_count=done_count+1
     rem 更新成功导出OGG的计数
     for /r "%output_folder%" %%o in (*.ogg) do (set /a output_count=output_count+1)
-    rem 标题栏显示当前的进度
-    title Total!total_count!-Done!done_count!-Out!output_count!
+    rem 显示当前的进度
+	cls
+    echo Total-!total_count!
+    echo Done-!done_count!
+    echo Out-!output_count!
     if !thread_index! geq !thread_count! (
         set thread_index=0
         waitfor /t 1 Signal >nul 2>&1
