@@ -6,7 +6,7 @@ rem 获取当前线程号
 set suffix=%~n0
 set suffix=%suffix:processAudio=%
 md "Tools\Decoding!suffix!"
-Tools\quickbms!suffix!.exe -k -q "Tools\wavescan.bms" "%input_file%" "Tools\Decoding!suffix!"
+Tools\quickbms!suffix!.exe -k -q -Y "Tools\wavescan.bms" "%input_file%" "Tools\Decoding!suffix!"
 Tools\bnkextr!suffix!.exe "%input_file%" /nodir
 move "*.WAV" "Tools\Decoding!suffix!"
 for %%b in (Tools\Decoding!suffix!\*.wav) do (
