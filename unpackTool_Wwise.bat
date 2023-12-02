@@ -2,9 +2,9 @@
     setlocal enabledelayedexpansion
     set input_folder=%~dp0SoundBank
     set output_folder=Ogg
-    set thread_index=0
-    for /f %%t in (Tools\thread.txt) do (set thread_count=%%t)
-    for /l %%i in (1,1,!thread_count!) do (
+    set thread_Cur=1
+    for /f %%t in (Tools\thread.txt) do (set thread_Max=%%t)
+    for /l %%i in (1,1,!thread_Max!) do (
         copy Tools\ww2ogg.exe Tools\ww2ogg_%%i.exe
         copy Tools\revorb.exe Tools\revorb_%%i.exe
         copy Tools\quickbms.exe Tools\quickbms_%%i.exe
@@ -17,22 +17,20 @@
         set done_count=0
         for /r "%input_folder%" %%a in (*.%%t) do (set /a total_count+=1)
         for /r "%input_folder%" %%a in (*.%%t) do (
-            set /a thread_index+=1
-            if !thread_count! neq 1 (
-				if !thread_index! leq !thread_count! (set suffix=_!thread_index!) else (set thread_index=0 & waitfor /t 1 Signal >nul 2>nul)
+            if !thread_Max! neq 1 (
+				if !thread_Cur! leq !thread_Max! (set suffix=_!thread_Cur!) else (set thread_Cur=1 & waitfor /t 1 Signal >nul 2>nul)
 			)
             set relative_path=%%~dpa
             set relative_path=!relative_path:%input_folder%\=!
             call :outpath_%%t %%~na
             md "!output_subfolder!" >nul 2>nul
             tasklist /fi "imagename eq cmd.exe" /v | findstr /i "processAudio!suffix!" >nul 2>nul
-            if !errorlevel! equ 0 (waitfor /s localhost /si processAudio!suffix!) >nul 2>nul
-            start /min "" Tools\processAudio!suffix!.bat "%%a" "!output_subfolder!"
+            if !errorlevel! equ 0 (waitfor /s localhost /si processAudio!suffix! && set /a thread_Cur-=1) >nul 2>nul
+            start /min "" Tools\processAudio!suffix!.bat "%%a" "!output_subfolder!" && set /a thread_Cur+=1
             set /a done_count+=1
-            cls & title !thread_index!
+            cls & title !thread_Cur!
             echo %%t Total: !total_count!
             echo %%t Done : !done_count!
-            if !thread_index! geq !thread_count! (set thread_index=0 & waitfor /t 1 Signal >nul 2>nul)
         )
         call :waitExport
     )
