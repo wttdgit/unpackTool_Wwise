@@ -5,7 +5,7 @@ set suffix=%~n0
 set suffix=!suffix:processAudio=!
 (
     if "%~x1"==".pck" (Tools\!suffix!\quickbms!suffix!.exe -k -q -Y "Tools\!suffix!\wwise_pck_extractor!suffix!.bms" "%~1" "%~2")
-    if "%~x1"==".bnk" (Tools\!suffix!\bnkextr!suffix!.exe "%~1" && rename "%~1" "%~x1%~n1")
+    if "%~x1"==".bnk" (Tools\!suffix!\bnkextr!suffix!.exe "%~1" /nodir && rename "%~1" "%~x1%~n1")
     if "%~x1"==".wem" (
         Tools\!suffix!\quickbms!suffix!.exe -k -q -Y "Tools\!suffix!\wavescan!suffix!.bms" "%~1" "Tools\!suffix!\Decoding!suffix!"
         move "*.WAV" "Tools\!suffix!\Decoding!suffix!"
