@@ -2,8 +2,6 @@
 set input_folder=%~dp0SoundBank
 set output_folder=Ogg
 set thread_index=0
-set total_count=0
-set done_count=0
 
 for /r "%input_folder%" %%a in (*.pck) do (
 	md "%input_folder%\PCK2BNK\%%~na" >nul 2>nul
@@ -19,6 +17,9 @@ for /l %%i in (1,1,!thread_count!) do (
     copy Tools\processAudio.bat Tools\processAudio_%%i.bat
 ) >nul 2>nul
 
+set total_count=0
+set done_count=0
+for /r "%input_folder%" %%a in (*.bnk) do (set /a total_count+=1)
 for /r "%input_folder%" %%a in (*.bnk) do (
     set relative_path=%%~dpa
     set relative_path=!relative_path:%input_folder%\=!
@@ -34,12 +35,25 @@ for /r "%input_folder%" %%a in (*.bnk) do (
     tasklist /fi "imagename eq cmd.exe" /v | findstr /i "processAudio!suffix!" >nul 2>nul
     if !errorlevel! equ 0 (waitfor /s localhost /si processAudio!suffix!) >nul 2>nul
     start /min "" Tools\processAudio!suffix!.bat "%%a" "!output_subfolder!"
+    set /a done_count+=1
+    cls
+    echo bnk Total: !total_count!
+    echo bnk Done : !done_count!
     if !thread_index! geq !thread_count! (
         set thread_index=0
         waitfor /t 1 Signal
     ) >nul 2>nul
 ) >nul
 
+:waitBnkExport
+tasklist /fi "imagename eq cmd.exe" /v | findstr /i "processAudio" >nul 2>nul
+if !errorlevel! equ 0 (
+    timeout 1 >nul
+    goto waitBnkExport
+)
+
+set total_count=0
+set done_count=0
 for /r "%input_folder%" %%a in (*.wem) do (set /a total_count+=1)
 for /r "%input_folder%" %%a in (*.wem) do (
     set relative_path=%%~dpa
@@ -57,8 +71,8 @@ for /r "%input_folder%" %%a in (*.wem) do (
     start /min "" Tools\processAudio!suffix!.bat "%%a" "!output_subfolder!"
     set /a done_count+=1
     cls
-    echo Total: !total_count!
-    echo Done : !done_count!
+    echo wem Total: !total_count!
+    echo wem Done : !done_count!
     if !thread_index! geq !thread_count! (
         set thread_index=0
         waitfor /t 1 Signal >nul 2>nul
@@ -72,6 +86,7 @@ if !errorlevel! equ 0 (
     timeout 1 >nul
     goto tempDel
 )
+timeout 1 >nul
 cd Tools
 call tempDel.bat
 exit
