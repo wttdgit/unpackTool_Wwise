@@ -31,7 +31,7 @@ for /r "%input_folder%" %%a in (*.bnk) do (
     ) else (
         set suffix=
     )
-    tasklist /fi "imagename eq cmd.exe" /v | findstr /i "processAudio!suffix!.bat" >nul 2>nul
+    tasklist /fi "imagename eq cmd.exe" /v | findstr /i "processAudio!suffix!" >nul 2>nul
     if !errorlevel! equ 0 (waitfor /s localhost /si processAudio!suffix!) >nul 2>nul
     start /min "" Tools\processAudio!suffix!.bat "%%a" "!output_subfolder!"
     if !thread_index! geq !thread_count! (
@@ -44,7 +44,7 @@ for /r "%input_folder%" %%a in (*.wem) do (set /a total_count+=1)
 for /r "%input_folder%" %%a in (*.wem) do (
     set relative_path=%%~dpa
     set relative_path=!relative_path:%input_folder%\=!
-    set output_subfolder=%output_folder%\!relative_path!	
+    set output_subfolder=%output_folder%\!relative_path!
     md "!output_subfolder!" >nul 2>nul
     set /a thread_index+=1
     if !thread_index! leq !thread_count! (
@@ -52,7 +52,7 @@ for /r "%input_folder%" %%a in (*.wem) do (
     ) else (
         set suffix=
     )
-    tasklist /fi "imagename eq cmd.exe" /v | findstr /i "processAudio!suffix!.bat" >nul 2>nul
+    tasklist /fi "imagename eq cmd.exe" /v | findstr /i "processAudio!suffix!" >nul 2>nul
     if !errorlevel! equ 0 (waitfor /s localhost /si processAudio!suffix!) >nul 2>nul
     start /min "" Tools\processAudio!suffix!.bat "%%a" "!output_subfolder!"
     set /a done_count+=1
@@ -72,7 +72,6 @@ if !errorlevel! equ 0 (
     timeout 1 >nul
     goto tempDel
 )
-(for /l %%i in (1,1,!thread_count!) do (rd /s /q Tools\Decoding_%%i)
-del /q Tools\*_*.exe
-del /q Tools\*_*.bat) >nul 2>nul
+cd Tools
+call tempDel.bat
 exit

@@ -1,4 +1,5 @@
 @echo off
+title %~n0
 setlocal
 set input_file=%~1
 set output_folder=%~2
