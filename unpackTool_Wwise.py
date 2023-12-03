@@ -10,7 +10,7 @@ import traceback
 from pathlib import Path
 import pdb
 def add_numbers(a, b):    # 设置断点
-    pdb.set_trace()
+    # pdb.set_trace()
     result = a + b
     # return result
 LOW_THRESHOLD = 40
@@ -64,19 +64,19 @@ class WwiseBankConverter:
     def run_command(self, command, file):
         stdout = stderr = subprocess.DEVNULL
         result = subprocess.run([str(path) for path in command], stdout=stdout, stderr=stderr)
-        print(f"Command result: {result}")
+        # print(f"Command result: {result}")
         new_file = file.with_suffix(file.suffix + '.done')
         try:
             file.rename(new_file)
         except FileNotFoundError as e:
-            logging.warning(f"File operation error: {e}")
+            logging.warning(f"File operation error")  # :{e}
     def process_pck(self, file):
         output_subfolder = self.input_folder / "PCK2BNK" / file.stem
         os.makedirs(output_subfolder, exist_ok=True)
         command = [self.tools_folder / "quickbms.exe", "-k", "-q", "-Y", self.tools_folder / "wwise_pck_extractor.bms", file, output_subfolder]
         self.run_command(command, file)
     def process_bnk(self, file):
-        command = [self.tools_folder / "bnkextr.exe", file]
+        command = [self.tools_folder / "bnkextr.exe", "/nodir", file]
         self.run_command(command, file)
     def process_wem(self, file):
         ogg_file = self.output_folder / file.with_suffix('.ogg')
