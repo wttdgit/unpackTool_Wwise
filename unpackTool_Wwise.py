@@ -144,7 +144,6 @@ def main():
             p = multiprocessing.Process(target=converter.process_file, args=(file_queue,))
             p.start()
             processes.append(p)
-        # 每处理file_count/100个文件，检查一次进程的状态
         check_interval = max(1, file_count // 100)
         processed_files = 0
         start_time = time.time()
@@ -155,7 +154,6 @@ def main():
                 time.sleep(0.1)
                 processed_files += 1
             if processed_files % check_interval == 0 or time.time() - start_time > 10:
-                # 等待同类文件所有进程完成后再处理下一类型
                 while any(p.is_alive() for p in processes):
                     time.sleep(0.1)
                 start_time = time.time()
