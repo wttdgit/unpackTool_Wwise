@@ -5,10 +5,16 @@ import logging
 import argparse
 import subprocess
 import multiprocessing
+from multiprocessing import Process, Manager
 import psutil
 import traceback
 from pathlib import Path
 import pdb
+import json
+import xml.etree.ElementTree as ET
+from itertools import chain
+
+# logging.basicConfig(level=logging.DEBUG)  # 设置日志级别为DEBUG以显示所有日志
 def add_numbers(a, b):    # 设置断点
     # pdb.set_trace()
     result = a + b
@@ -42,7 +48,7 @@ class WwiseBankConverter:
             1: self.process_pck,
             2: self.process_bnk,
             3: self.process_wem,
-            4: self.process_xml
+            4: self.process_ogg
         }
     def process_file(self, file_queue):
         while not file_queue.empty():
@@ -95,11 +101,66 @@ class WwiseBankConverter:
             self.run_command(command, file)
             command = os.remove(wav_file)
             logging.info(f'WAV-del:{command}')
-    def process_xml(self, file):
-        tree = ET.parse(file)
-        root = tree.getroot()
-    def update_resource(self, result):
-        logging.info(f"update-------- {result}")
+    def process_ogg(self, file):
+        soundbank_info_files = list(chain(self.input_folder.rglob('*.xml'), self.input_folder.rglob('*.json'), self.input_folder.rglob('*.txt')))
+        soundbank_info = {}
+        for info_file in soundbank_info_files:
+            if info_file.suffix == '.xml':
+                tree = ET.parse(info_file)
+                root = tree.getroot()
+                for file_elem in root.findall('.//File'):
+                    file_id = file_elem.get('Id')
+                    short_name_elem = file_elem.find('ShortName')
+                    if short_name_elem is not None and short_name_elem.text and file_id:
+                        short_name = os.path.splitext(short_name_elem.text)[0]
+                        soundbank_info.setdefault(file_id, []).append(short_name)
+                    else:
+                        logging.warning(f"xml: Id/ShortName Missing for element: {ET.tostring(file_elem, encoding='unicode')} in file: {info_file}")
+            elif info_file.suffix == '.json':
+                with open(info_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    soundbanks_info = data.get('SoundBanksInfo')
+                    if soundbanks_info:
+                        streamed_files = soundbanks_info.get('StreamedFiles', [])
+                        for file_entry in streamed_files:
+                            file_id = file_entry.get('Id')
+                            short_name = file_entry.get('ShortName')
+                            if file_id and short_name:
+                                short_name_without_extension = os.path.splitext(short_name)[0]
+                                soundbank_info.setdefault(file_id, []).append(short_name_without_extension)
+                            else:
+                                logging.warning(f"json: Id/ShortName Missing: {info_file}")
+                    else:
+                        logging.error(f"json: SoundBanksInfo Key Missing: {info_file}")
+            elif info_file.suffix == '.txt':
+                with open(info_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        parts = line.split('\t')
+                        if len(parts) > 3:
+                            file_id = parts[1]
+                            short_name = parts[2]
+                            if file_id and short_name:
+                                short_name_without_extension = os.path.splitext(short_name)[0]
+                                soundbank_info.setdefault(file_id, []).append(short_name_without_extension)
+                            else:
+                                logging.warning(f"Missing file_id or short_name in line: {line.strip()}")
+                        else:
+                            logging.warning(f"Insufficient columns in line: {line.strip()}")
+        ogg_files = list(self.output_folder.rglob('*.ogg'))
+        for ogg_file in ogg_files:
+            ogg_filename = os.path.splitext(ogg_file.stem)[0]
+            if ogg_filename in soundbank_info:
+                short_names = soundbank_info[ogg_filename]
+                full_path = max(short_names, key=lambda name: name.count('\\'))
+                new_relative_path = "SFX\\" + "\\".join(full_path.split('.')) + ".ogg"
+                new_path = self.output_folder / new_relative_path
+                try:
+                    os.makedirs(new_path.parent, exist_ok=True)
+                    ogg_file.rename(new_path)
+                except Exception as e:
+                    logging.error(f"Failed to move file: {e}")
+            else:
+                logging.warning(f"ShortName not found for: {ogg_filename}")
 def main():
     a = 10
     b = 20
@@ -118,10 +179,10 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     converter = WwiseBankConverter(args.input, args.output, args.temp, args.tools)
-    priority_map = {".pck": 1, ".bnk": 2, ".wem": 3, ".xml": 4}
+    priority_map = {".pck": 1, ".bnk": 2, ".wem": 3, ".xml": 4, ".json": 4, ".txt": 4}
     wem_need_process = set()
+    file_queue = multiprocessing.Manager().Queue()
     for priority in sorted(priority_map.values()):
-        file_queue = multiprocessing.Manager().Queue()
         file_count = 0
         if priority == priority_map.get(".wem"):
             ogg_files = set(file.stem for file in Path(args.output).rglob('*.ogg'))
@@ -158,7 +219,7 @@ def main():
                     time.sleep(0.1)
                 start_time = time.time()
     logging.info("Convert Done!")
-    input('PAUSE')
+    input('PAUSE2')
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     main()
